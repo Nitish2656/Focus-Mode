@@ -4,10 +4,10 @@
     "slug": "FocusMobile",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./app_assets/icon.png",
     "userInterfaceStyle": "dark",
     "splash": {
-      "image": "./assets/splash-icon.png",
+      "image": "./app_assets/splash-icon.png",
       "resizeMode": "contain",
       "backgroundColor": "#0a0a0f"
     },
@@ -22,13 +22,13 @@
       "package": "com.focus.tracker.mobile",
       "adaptiveIcon": {
         "backgroundColor": "#0a0a0f",
-        "foregroundImage": "./assets/android-icon-foreground.png",
-        "backgroundImage": "./assets/android-icon-background.png",
-        "monochromeImage": "./assets/android-icon-monochrome.png"
+        "foregroundImage": "./app_assets/android-icon-foreground.png",
+        "backgroundImage": "./app_assets/android-icon-background.png",
+        "monochromeImage": "./app_assets/android-icon-monochrome.png"
       }
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./app_assets/favicon.png"
     },
     "extra": {
       "eas": {
