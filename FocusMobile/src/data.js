@@ -508,3 +508,5 @@ const FOCUS_PRESETS = [
   { label: "Quick", work: 15, break: 5, icon: "⏱️" }
 ];
 
+export { CURRICULUM, QUOTES, FOCUS_PRESETS, QUESTION_BANK };
+

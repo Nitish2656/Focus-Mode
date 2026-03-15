@@ -1,20 +1,11 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Platform } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { useAppContext } from '../AppContext';
-import * as Notifications from 'expo-notifications';
 
 export default function RemindersScreen() {
   const { state, updateState } = useAppContext();
   const r = state.reminder;
   const days = ['Su','Mo','Tu','We','Th','Fr','Sa'];
-  const [permission, setPermission] = useState(false);
-
-  useEffect(() => {
-    (async () => {
-      const { status } = await Notifications.getPermissionsAsync();
-      setPermission(status === 'granted');
-    })();
-  }, []);
 
   const toggleDay = (i) => {
     const newDays = [...r.days];
@@ -24,35 +15,19 @@ export default function RemindersScreen() {
     updateState('reminder', { ...r, days: newDays });
   };
 
-  const scheduleReminder = async () => {
-    const { status } = await Notifications.requestPermissionsAsync();
-    if (status !== 'granted') {
-      alert('Notification permissions denied.');
-      return;
-    }
-    setPermission(true);
-
+  const scheduleReminder = () => {
     const isEnabling = !r.enabled;
     updateState('reminder', { ...r, enabled: isEnabling });
 
     if (isEnabling) {
-      // In a real app we would schedule Expo Location/Time triggers here
-      // For now we simulate the scheduling action
-      alert(`Reminders scheduled for ${r.time} on selected days!`);
+      alert(`Reminders simulated for ${r.time} on selected days!\n\n(Native Push Notifications require a custom EAS build on Expo 53+)`);
     } else {
-      await Notifications.cancelAllScheduledNotificationsAsync();
       alert('Reminders disabled.');
     }
   };
 
-  const testPush = async () => {
-    await Notifications.scheduleNotificationAsync({
-      content: {
-        title: "Focus 🚀",
-        body: 'Time to study! Keep going! 💪',
-      },
-      trigger: null, // Send now
-    });
+  const testPush = () => {
+    alert("Test Push!\n\n(Native Push requires a standalone EAS build, not Expo Go)");
   };
 
   return (

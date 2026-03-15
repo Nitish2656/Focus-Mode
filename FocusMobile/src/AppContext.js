@@ -1,14 +1,12 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { auth, db } from './firebase';
-import { doc, getDoc, setDoc, collection } from 'firebase/firestore';
-import { onAuthStateChanged } from 'firebase/auth';
 
 const AppContext = createContext();
 
 const STATE_KEY = 'focus_tracker_v3_mobile';
 
 const getDefaultState = () => ({
+  hasOnboarded: false,
   checked: {},
   projects: {},
   shutdown: {},
@@ -32,36 +30,19 @@ const getDefaultState = () => ({
 });
 
 export const AppProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
   const [state, setState] = useState(getDefaultState());
   const [loading, setLoading] = useState(true);
   const saveTimer = useRef(null);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (usr) => {
-      if (usr) {
-        setUser(usr);
-        await initApp(usr);
-      } else {
-        setUser(null);
-        setLoading(false);
-      }
-    });
-    return unsubscribe;
+    initApp();
   }, []);
 
-  const initApp = async (usr) => {
+  const initApp = async () => {
     try {
-      // 1. Load from AsyncStorage temp fast
+      // 1. Load exclusively from AsyncStorage (100% Local Offline)
       const localRaw = await AsyncStorage.getItem(STATE_KEY);
       let loadedState = localRaw ? JSON.parse(localRaw) : getDefaultState();
-
-      // 2. Load from Firestore
-      const docRef = doc(db, 'users', usr.uid);
-      const snap = await getDoc(docRef);
-      if (snap.exists()) {
-        loadedState = { ...getDefaultState(), ...snap.data() };
-      }
       
       // Update streak
       const today = new Date().toISOString().slice(0,10);
@@ -81,9 +62,8 @@ export const AppProvider = ({ children }) => {
       
       setState(loadedState);
       
-      // 3. Save merged/updated back
+      // 3. Save back locally
       await AsyncStorage.setItem(STATE_KEY, JSON.stringify(loadedState));
-      await setDoc(docRef, loadedState, { merge: true });
     } catch (e) {
       console.warn('Init error', e);
     } finally {
@@ -95,14 +75,8 @@ export const AppProvider = ({ children }) => {
     setState(newState);
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(async () => {
+      // 100% Local Storage Sync
       await AsyncStorage.setItem(STATE_KEY, JSON.stringify(newState));
-      if (user) {
-        try {
-          await setDoc(doc(db, 'users', user.uid), newState, { merge: true });
-        } catch (e) {
-          console.warn('Firestore sync failed', e);
-        }
-      }
     }, 500);
   };
 
@@ -112,7 +86,7 @@ export const AppProvider = ({ children }) => {
   };
 
   return (
-    <AppContext.Provider value={{ user, state, loading, syncState, updateState }}>
+    <AppContext.Provider value={{ state, loading, syncState, updateState }}>
       {children}
     </AppContext.Provider>
   );

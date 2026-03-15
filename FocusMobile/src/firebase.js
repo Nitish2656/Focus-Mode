@@ -1,6 +1,7 @@
 import { initializeApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
+import { initializeAuth, getReactNativePersistence } from 'firebase/auth';
 import { getFirestore } from 'firebase/firestore';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const firebaseConfig = {
   apiKey: "YOUR_API_KEY",
@@ -12,9 +13,13 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
-// Use standard getAuth. React Native Firebase supports standard getAuth in newer SDKs,
-// or falls back to async storage manually if needed. For Expo web testing, this is required.
-const auth = getAuth(app);
+
+// Critical fix for "Component auth has not been registered yet"
+// Initialize Auth precisely with React Native Persistence
+const auth = initializeAuth(app, {
+  persistence: getReactNativePersistence(AsyncStorage)
+});
+
 const db = getFirestore(app);
 
 export { auth, db };

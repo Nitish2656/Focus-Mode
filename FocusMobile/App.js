@@ -6,7 +6,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { AppProvider, useAppContext } from './src/AppContext';
 
-import LoginScreen from './src/screens/LoginScreen';
+import OnboardingScreen from './src/screens/OnboardingScreen';
 import DashboardScreen from './src/screens/DashboardScreen';
 import CurriculumScreen from './src/screens/CurriculumScreen';
 import LogScreen from './src/screens/LogScreen';
@@ -60,7 +60,7 @@ const MainTabs = () => {
 };
 
 const RootNavigator = () => {
-  const { user, loading } = useAppContext();
+  const { state, loading } = useAppContext();
   
   if (loading) {
     return (
@@ -72,7 +72,7 @@ const RootNavigator = () => {
   
   return (
     <NavigationContainer theme={MyDarkTheme}>
-      {user ? <MainTabs /> : <LoginScreen />}
+      {!state.hasOnboarded ? <OnboardingScreen /> : <MainTabs />}
     </NavigationContainer>
   );
 };
