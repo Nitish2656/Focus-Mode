@@ -31,6 +31,18 @@ const getDefaultState = () => ({
     { id:'h3', label:'8 hrs sleep',                 icon:'😴', streak:0, lastDone:null },
     { id:'h4', label:'Exercise / Walk',              icon:'🏃', streak:0, lastDone:null },
     { id:'h5', label:'Code review / GitHub push',   icon:'💻', streak:0, lastDone:null }
+  ],
+  xp: 0,
+  level: 1,
+  quests: [
+    { id: 'q1', label: 'Morning Ritual', XP: 50, type: 'daily', done: false },
+    { id: 'q2', label: 'Deep Work (2 Hours)', XP: 150, type: 'epic', done: false },
+    { id: 'q3', label: 'Curriculum Master', XP: 300, type: 'epic', done: false },
+  ],
+  achievements: [
+     { id: 'a1', label: 'The Rookie', icon: '🥉', desc: 'Complete 1 focus session', earned: false },
+     { id: 'a2', label: 'Zen Master', icon: '🧘', desc: 'Listen to 1 hour of ambient focus', earned: false },
+     { id: 'a3', label: 'Unstoppable', icon: '💎', desc: 'Reach a 7-day streak', earned: false }
   ]
 });
 
@@ -118,8 +130,32 @@ export const AppProvider = ({ children }) => {
     syncState(newState);
   };
 
+  const completeQuest = (questId) => {
+    const newState = { ...state };
+    const quest = newState.quests.find(q => q.id === questId);
+    if (quest && !quest.done) {
+      quest.done = true;
+      newState.xp += quest.XP;
+      // Level up logic (every 500 XP)
+      const newLevel = Math.floor(newState.xp / 500) + 1;
+      if (newLevel > newState.level) {
+        newState.level = newLevel;
+      }
+      syncState(newState);
+    }
+  };
+
+  const earnAchievement = (id) => {
+    const newState = { ...state };
+    const achievement = newState.achievements.find(a => a.id === id);
+    if (achievement && !achievement.earned) {
+      achievement.earned = true;
+      syncState(newState);
+    }
+  };
+
   return (
-    <AppContext.Provider value={{ state, loading, syncState, updateState, recordSession }}>
+    <AppContext.Provider value={{ state, loading, syncState, updateState, recordSession, completeQuest, earnAchievement }}>
       {children}
     </AppContext.Provider>
   );

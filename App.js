@@ -16,6 +16,9 @@ import RemindersScreen from './src/screens/RemindersScreen';
 import AnalyticsScreen from './src/screens/AnalyticsScreen';
 import StudyBuddyScreen from './src/screens/StudyBuddyScreen';
 import LimitsScreen from './src/screens/LimitsScreen';
+import ZenSanctuaryScreen from './src/screens/ZenSanctuaryScreen';
+import QuestLogScreen from './src/screens/QuestLogScreen';
+import AchievementsScreen from './src/screens/AchievementsScreen';
 import { ActivityIndicator, View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
@@ -119,6 +122,30 @@ const MainDrawer = () => {
         options={{ 
           title: 'Reminders',
           drawerIcon: ({ color, size }) => <Ionicons name="notifications-outline" size={size} color={color} />
+        }} 
+      />
+      <Drawer.Screen 
+        name="Quests" 
+        component={QuestLogScreen} 
+        options={{ 
+          title: 'Focus Quests',
+          drawerIcon: ({ color, size }) => <Ionicons name="shield-checkmark-outline" size={size} color={color} />
+        }} 
+      />
+      <Drawer.Screen 
+        name="Zen" 
+        component={ZenSanctuaryScreen} 
+        options={{ 
+          title: 'Zen Sanctuary',
+          drawerIcon: ({ color, size }) => <Ionicons name="leaf-outline" size={size} color={color} />
+        }} 
+      />
+      <Drawer.Screen 
+        name="Vault" 
+        component={AchievementsScreen} 
+        options={{ 
+          title: 'Achievements',
+          drawerIcon: ({ color, size }) => <Ionicons name="trophy-outline" size={size} color={color} />
         }} 
       />
     </Drawer.Navigator>
