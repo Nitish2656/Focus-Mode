@@ -1,5 +1,11 @@
-import * as UsageStats from 'expo-android-usagestats';
 import { AppState, Linking } from 'react-native';
+
+let UsageStats = null;
+try {
+  UsageStats = require('expo-android-usagestats');
+} catch (e) {
+  console.log('Focus Shield: UsageStats native module not available.');
+}
 
 /**
  * FocusShieldLogic
@@ -8,8 +14,7 @@ import { AppState, Linking } from 'react-native';
 
 export const checkForegroundApp = async (blocklist) => {
   try {
-    if (!UsageStats || !UsageStats.hasUsageStatsPermission) {
-      console.log('Focus Shield: Native module not available (Expo Go / Non-Android)');
+    if (!UsageStats || !UsageStats.queryEvents) {
       return null;
     }
     
@@ -46,7 +51,7 @@ export const intervene = () => {
 };
 
 export const requestShieldPermissions = async () => {
-    if (!UsageStats || !UsageStats.hasUsageStatsPermission) {
+    if (!UsageStats || !UsageStats.requestUsageStatsPermission) {
         alert('Focus Shield requires the Standalone APK build to function.');
         return false;
     }

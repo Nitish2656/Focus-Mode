@@ -1,7 +1,13 @@
 import { View, Text, ScrollView, StyleSheet, Dimensions, ActivityIndicator } from 'react-native';
 import { BarChart, LineChart, PieChart, ProgressChart } from 'react-native-chart-kit';
 import { useAppContext, getWarriorRank } from '../AppContext';
-import * as UsageStats from 'expo-android-usagestats';
+
+let UsageStats = null;
+try {
+  UsageStats = require('expo-android-usagestats');
+} catch (e) {
+  // Graceful failure for Expo Go
+}
 
 const screenWidth = Dimensions.get('window').width;
 
@@ -16,8 +22,7 @@ export default function AnalyticsScreen() {
 
   const fetchExternalStats = async () => {
     try {
-        if (!UsageStats || !UsageStats.hasUsageStatsPermission) {
-            console.log('Analytics: Native UsageStats module unavailable.');
+        if (!UsageStats || !UsageStats.queryAndAggregateUsageStats) {
             setLoadingExtras(false);
             return;
         }
