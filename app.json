@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "Focus Tracker",
-    "slug": "FocusMobile",
+    "slug": "focusmode-professional",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./app_assets/icon.png",
@@ -32,7 +32,7 @@
     },
     "extra": {
       "eas": {
-        "projectId": "38630db4-3e0c-432c-836b-3899e3646b24"
+        "projectId": "a6c6783d-ab7d-44ec-9fb1-b89a6938cfbc"
       }
     }
   }
