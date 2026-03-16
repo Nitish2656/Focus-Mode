@@ -104,14 +104,18 @@ export default function DashboardScreen() {
       </View>
 
       {/* Quick Access */}
-      <View style={{flexDirection: 'row', gap: 12, marginTop: 16}}>
+      <View style={{flexDirection: 'row', gap: 10, marginTop: 16}}>
          <TouchableOpacity onPress={() => navigation.navigate('Report')} style={[styles.qCard, {borderColor: 'rgba(124,58,237,0.3)'}]}>
-            <Ionicons name="analytics" size={20} color="#7c3aed" />
+            <Ionicons name="analytics" size={18} color="#7c3aed" />
             <Text style={styles.qText}>Reports</Text>
          </TouchableOpacity>
          <TouchableOpacity onPress={() => navigation.navigate('StudyBuddy')} style={[styles.qCard, {borderColor: 'rgba(16,185,129,0.3)'}]}>
-            <Ionicons name="school" size={20} color="#10b981" />
+            <Ionicons name="school" size={18} color="#10b981" />
             <Text style={styles.qText}>Buddy</Text>
+         </TouchableOpacity>
+         <TouchableOpacity onPress={() => navigation.navigate('Limits')} style={[styles.qCard, {borderColor: 'rgba(239, 68, 68, 0.3)'}]}>
+            <Ionicons name="timer" size={18} color="#ef4444" />
+            <Text style={styles.qText}>Limits</Text>
          </TouchableOpacity>
       </View>
 

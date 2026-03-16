@@ -46,6 +46,34 @@ export const checkForegroundApp = async (blocklist) => {
   }
 };
 
+export const checkLimits = async (appLimits) => {
+  try {
+    if (!UsageStats || !UsageStats.queryAndAggregateUsageStats) return null;
+
+    const now = Date.now();
+    const startOfDay = new Date();
+    startOfDay.setHours(0, 0, 0, 0);
+
+    const stats = await UsageStats.queryAndAggregateUsageStats(startOfDay.getTime(), now);
+    if (!stats) return null;
+
+    // We need to check what is in foreground right now
+    const currentPkg = await checkForegroundApp(Object.keys(appLimits));
+    if (!currentPkg) return null;
+
+    const limitMins = appLimits[currentPkg];
+    const totalMins = (stats[currentPkg]?.totalTimeInForeground || 0) / 60000;
+
+    if (totalMins >= limitMins) {
+      return currentPkg;
+    }
+    return null;
+  } catch (e) {
+    console.warn('Limit Check Error:', e);
+    return null;
+  }
+};
+
 export const intervene = () => {
   Linking.openURL('exp://'); 
 };

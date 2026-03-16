@@ -3,7 +3,7 @@ import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-nati
 import { useAppContext, getWarriorRank } from '../AppContext';
 import { FOCUS_PRESETS, QUOTES } from '../data';
 import { createAudioPlayer } from 'expo-audio';
-import { checkForegroundApp, intervene, requestShieldPermissions } from '../FocusShieldLogic';
+import { checkForegroundApp, intervene, requestShieldPermissions, checkLimits } from '../FocusShieldLogic';
 
 const SUBJECTS = ['Python', 'SQL', 'Statistics', 'Machine Learning', 'Projects'];
 const SOUNDS = [
@@ -90,13 +90,25 @@ export default function DisciplineScreen() {
   const startShieldMonitoring = () => {
     if (shieldRef.current) clearInterval(shieldRef.current);
     shieldRef.current = setInterval(async () => {
+        // 1. Check direct blocklist (Focus Shield)
         const detected = await checkForegroundApp(state.blocklist);
         if (detected) {
             console.log('Intervention triggered for:', detected);
             intervene();
             alert('🛡️ Focus Shield: Distribution app detected! Returning to study.');
+            return;
         }
-    }, 3000); // Check every 3 seconds
+
+        // 2. Check daily time limits (App Limits)
+        if (Object.keys(state.appLimits || {}).length > 0) {
+            const limitViolated = await checkLimits(state.appLimits);
+            if (limitViolated) {
+                console.log('Limit reached for:', limitViolated);
+                intervene();
+                alert(`⏳ App Limit: You have exceeded your daily limit for ${limitViolated.split('.').pop().toUpperCase()}!`);
+            }
+        }
+    }, 3000); 
   };
 
   const toggleShield = async () => {

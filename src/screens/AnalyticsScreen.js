@@ -15,6 +15,7 @@ const screenWidth = Dimensions.get('window').width;
 export default function AnalyticsScreen() {
   const { state } = useAppContext();
   const [externalStats, setExternalStats] = React.useState(null);
+  const [topApps, setTopApps] = React.useState([]);
   const [loadingExtras, setLoadingExtras] = React.useState(true);
 
   React.useEffect(() => {
@@ -38,15 +39,25 @@ export default function AnalyticsScreen() {
         const start = now - (7 * 24 * 60 * 60 * 1000);
         const stats = await UsageStats.queryAndAggregateUsageStats(start, now);
         
-        let distractionMins = 0;
         if (stats) {
-            Object.values(stats).forEach(pkg => {
+            const allApps = Object.values(stats);
+            
+            // Distraction tally
+            let distractionMins = 0;
+            allApps.forEach(pkg => {
                 if (state.blocklist.includes(pkg.packageName)) {
                     distractionMins += (pkg.totalTimeInForeground || 0) / 60000;
                 }
             });
+            setExternalStats(Math.round(distractionMins));
+
+            // Top apps today
+            const sorted = allApps
+                .filter(a => (a.totalTimeInForeground || 0) > 60000) // At least 1 min
+                .sort((a, b) => b.totalTimeInForeground - a.totalTimeInForeground)
+                .slice(0, 5);
+            setTopApps(sorted);
         }
-        setExternalStats(Math.round(distractionMins));
     } catch (e) {
         console.warn('Usage Fetch Error:', e);
     } finally {
@@ -224,25 +235,41 @@ export default function AnalyticsScreen() {
         {loadingExtras ? (
             <ActivityIndicator color="#7c3aed" style={{marginTop: 20}} />
         ) : (
-            <View style={{marginTop: 20, alignItems: 'center'}}>
-                <ProgressChart
-                    data={{
-                        labels: ["Study", "Lost"],
-                        data: [
-                            0.7, // Placeholder or calculated ratio
-                            Math.min(1, (externalStats || 0) / 300) 
-                        ]
-                    }}
-                    width={screenWidth - 80}
-                    height={160}
-                    strokeWidth={16}
-                    radius={32}
-                    chartConfig={{...chartConfig, color: (opacity=1, i) => i === 0 ? `rgba(16, 185, 129, ${opacity})` : `rgba(239, 68, 68, ${opacity})` }}
-                    hideLegend={false}
-                />
-                <Text style={{color: '#94a3b8', fontSize: 12, marginTop: 10}}>
-                    Distraction Mins (7d): <Text style={{color: '#ef4444', fontWeight: 'bold'}}>{externalStats || 0}m</Text>
-                </Text>
+            <View style={{marginTop: 20}}>
+                <View style={{alignItems: 'center'}}>
+                    <ProgressChart
+                        data={{
+                            labels: ["Study", "Lost"],
+                            data: [
+                                0.7, // Placeholder or calculated ratio
+                                Math.min(1, (externalStats || 0) / 300) 
+                            ]
+                        }}
+                        width={screenWidth - 80}
+                        height={160}
+                        strokeWidth={16}
+                        radius={32}
+                        chartConfig={{...chartConfig, color: (opacity=1, i) => i === 0 ? `rgba(16, 185, 129, ${opacity})` : `rgba(239, 68, 68, ${opacity})` }}
+                        hideLegend={false}
+                    />
+                    <Text style={{color: '#94a3b8', fontSize: 12, marginTop: 10}}>
+                        Distraction Mins (7d): <Text style={{color: '#ef4444', fontWeight: 'bold'}}>{externalStats || 0}m</Text>
+                    </Text>
+                </View>
+
+                {topApps.length > 0 && (
+                    <View style={{marginTop: 24, borderTopWidth: 1, borderColor: 'rgba(255,255,255,0.05)', paddingTop: 16}}>
+                        <Text style={[styles.chartTitle, {fontSize: 11}]}>🏆 Top Used Today</Text>
+                        {topApps.map((app, idx) => (
+                            <View key={idx} style={{flexDirection: 'row', justifyContent: 'space-between', marginTop: 10, alignItems: 'center'}}>
+                                <Text style={{color: '#f8fafc', fontSize: 13, fontWeight: '600'}} numberOfLines={1}>
+                                    {app.packageName.split('.').pop().toUpperCase()}
+                                </Text>
+                                <Text style={{color: '#94a3b8', fontSize: 12}}>{Math.round(app.totalTimeInForeground / 60000)}m</Text>
+                            </View>
+                        ))}
+                    </View>
+                )}
             </View>
         )}
       </View>

@@ -24,6 +24,7 @@ const getDefaultState = () => ({
   moodLog: {},
   focusShieldEnabled: false,
   blocklist: ['com.google.android.youtube', 'com.instagram.android', 'com.facebook.katana'],
+  appLimits: {}, // { 'com.pkg.name': maxMinutes }
   habits: [
     { id:'h1', label:'Study ≥1 hour',              icon:'📖', streak:0, lastDone:null },
     { id:'h2', label:'No social media before study', icon:'📵', streak:0, lastDone:null },
