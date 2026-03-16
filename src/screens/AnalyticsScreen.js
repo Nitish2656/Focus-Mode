@@ -1,3 +1,4 @@
+import React, { useMemo } from 'react';
 import { View, Text, ScrollView, StyleSheet, Dimensions, ActivityIndicator } from 'react-native';
 import { BarChart, LineChart, PieChart, ProgressChart } from 'react-native-chart-kit';
 import { useAppContext, getWarriorRank } from '../AppContext';
