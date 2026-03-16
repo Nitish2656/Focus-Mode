@@ -1,6 +1,7 @@
 import React from 'react';
 import { NavigationContainer, DarkTheme } from '@react-navigation/native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { createDrawerNavigator } from '@react-navigation/drawer';
 import { Ionicons } from '@expo/vector-icons';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
@@ -18,6 +19,7 @@ import LimitsScreen from './src/screens/LimitsScreen';
 import { ActivityIndicator, View } from 'react-native';
 
 const Tab = createBottomTabNavigator();
+const Drawer = createDrawerNavigator();
 
 const MyDarkTheme = {
   ...DarkTheme,
@@ -58,13 +60,67 @@ const MainTabs = () => {
     >
       <Tab.Screen name="Home" component={DashboardScreen} />
       <Tab.Screen name="Learn" component={CurriculumScreen} />
-      <Tab.Screen name="Log" component={LogScreen} />
       <Tab.Screen name="Focus" component={DisciplineScreen} />
       <Tab.Screen name="Report" component={AnalyticsScreen} />
-      <Tab.Screen name="StudyBuddy" component={StudyBuddyScreen} options={{ title: 'Buddy' }} />
-      <Tab.Screen name="Limits" component={LimitsScreen} />
-      <Tab.Screen name="Remind" component={RemindersScreen} />
+      <Tab.Screen name="Log" component={LogScreen} />
     </Tab.Navigator>
+  );
+};
+
+const MainDrawer = () => {
+  return (
+    <Drawer.Navigator
+      screenOptions={{
+        headerStyle: {
+          backgroundColor: '#0a0a0f',
+          borderBottomWidth: 1,
+          borderBottomColor: 'rgba(255,255,255,0.05)',
+        },
+        headerTintColor: '#fff',
+        headerTitleStyle: {
+          fontWeight: '800',
+        },
+        drawerStyle: {
+          backgroundColor: '#0a0a0f',
+          width: 260,
+        },
+        drawerActiveTintColor: '#7c3aed',
+        drawerInactiveTintColor: '#94a3b8',
+      }}
+    >
+      <Drawer.Screen 
+        name="Main" 
+        component={MainTabs} 
+        options={{ 
+          title: 'Focus Tracker',
+          drawerIcon: ({ color, size }) => <Ionicons name="apps-outline" size={size} color={color} />
+        }} 
+      />
+      <Drawer.Screen 
+        name="StudyBuddy" 
+        component={StudyBuddyScreen} 
+        options={{ 
+          title: 'Study Buddy',
+          drawerIcon: ({ color, size }) => <Ionicons name="school-outline" size={size} color={color} />
+        }} 
+      />
+      <Drawer.Screen 
+        name="Limits" 
+        component={LimitsScreen} 
+        options={{ 
+          title: 'App Limits',
+          drawerIcon: ({ color, size }) => <Ionicons name="timer-outline" size={size} color={color} />
+        }} 
+      />
+      <Drawer.Screen 
+        name="Remind" 
+        component={RemindersScreen} 
+        options={{ 
+          title: 'Reminders',
+          drawerIcon: ({ color, size }) => <Ionicons name="notifications-outline" size={size} color={color} />
+        }} 
+      />
+    </Drawer.Navigator>
   );
 };
 
@@ -81,7 +137,7 @@ const RootNavigator = () => {
   
   return (
     <NavigationContainer theme={MyDarkTheme}>
-      {!state.hasOnboarded ? <OnboardingScreen /> : <MainTabs />}
+      {!state.hasOnboarded ? <OnboardingScreen /> : <MainDrawer />}
     </NavigationContainer>
   );
 };
