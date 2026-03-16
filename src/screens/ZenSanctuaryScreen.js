@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Animated, Dimensions } from 'react-native';
 import { createAudioPlayer } from 'expo-audio';
 import { Ionicons } from '@expo/vector-icons';
+import { useAppContext } from '../AppContext';
 
 const { width } = Dimensions.get('window');
 
@@ -18,6 +19,9 @@ export default function ZenSanctuaryScreen() {
   const playerRef = useRef(null);
   const breatheAnim = useRef(new Animated.Value(1)).current;
 
+  const { recordZenTime } = useAppContext();
+  const zenStartTime = useRef(null);
+
   useEffect(() => {
     // Breathing Animation Loop
     Animated.loop(
@@ -28,15 +32,25 @@ export default function ZenSanctuaryScreen() {
     ).start();
 
     return () => {
-      if (playerRef.current) playerRef.current.pause();
+      if (playerRef.current) {
+        playerRef.current.pause();
+        // Record time when leaving
+        if (playing && zenStartTime.current) {
+          const elapsedMins = Math.floor((Date.now() - zenStartTime.current) / 60000);
+          if (elapsedMins > 0) recordZenTime(elapsedMins);
+        }
+      }
     };
-  }, []);
+  }, [playing]);
 
   const togglePlay = () => {
     if (playing) {
       playerRef.current?.pause();
+      const elapsedMins = Math.floor((Date.now() - zenStartTime.current) / 60000);
+      if (elapsedMins > 0) recordZenTime(elapsedMins);
       setPlaying(false);
     } else {
+      zenStartTime.current = Date.now();
       if (!playerRef.current || playerRef.current.src !== selectedTrack.url) {
         playerRef.current = createAudioPlayer(selectedTrack.url);
         playerRef.current.loop = true;

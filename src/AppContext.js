@@ -43,7 +43,8 @@ const getDefaultState = () => ({
      { id: 'a1', label: 'The Rookie', icon: '🥉', desc: 'Complete 1 focus session', earned: false },
      { id: 'a2', label: 'Zen Master', icon: '🧘', desc: 'Listen to 1 hour of ambient focus', earned: false },
      { id: 'a3', label: 'Unstoppable', icon: '💎', desc: 'Reach a 7-day streak', earned: false }
-  ]
+  ],
+  zenTime: 0 // Track total minutes in Zen Sanctuary
 });
 
 export const getWarriorRank = (score) => {
@@ -68,6 +69,17 @@ export const AppProvider = ({ children }) => {
       const localRaw = await AsyncStorage.getItem(STATE_KEY);
       let loadedState = localRaw ? JSON.parse(localRaw) : getDefaultState();
       
+      // ENSURE NEW KEYS EXIST (Merge loaded state with defaults)
+      const defaultState = getDefaultState();
+      loadedState = {
+        ...defaultState,
+        ...loadedState,
+        quests: loadedState.quests || defaultState.quests,
+        achievements: loadedState.achievements || defaultState.achievements,
+        xp: loadedState.xp ?? defaultState.xp,
+        level: loadedState.level ?? defaultState.level
+      };
+      
       const today = new Date().toISOString().slice(0,10);
       if (loadedState.lastActive !== today) {
         const yesterday = new Date(); yesterday.setDate(yesterday.getDate()-1);
@@ -80,6 +92,17 @@ export const AppProvider = ({ children }) => {
           loadedState.streak = 1;
         }
         loadedState.maxStreak = Math.max(loadedState.maxStreak || 0, loadedState.streak);
+        
+        // TRIGGER: Unstoppable Achievement
+        if (loadedState.streak >= 7) {
+          const ach = loadedState.achievements.find(a => a.id === 'a3');
+          if (ach && !ach.earned) {
+             loadedState.achievements = loadedState.achievements.map(a => 
+               a.id === 'a3' ? { ...a, earned: true } : a
+             );
+          }
+        }
+        
         loadedState.lastActive = today;
       }
       
@@ -127,35 +150,97 @@ export const AppProvider = ({ children }) => {
       newState.history[today].topics[topic] += durationSeconds;
     }
     
+    // TRIGGER: The Rookie Achievement
+    if (newState.focusSessions >= 1) {
+      const ach = newState.achievements.find(a => a.id === 'a1');
+      if (ach && !ach.earned) {
+         newState.achievements = newState.achievements.map(a => 
+           a.id === 'a1' ? { ...a, earned: true } : a
+         );
+      }
+    }
+    
     syncState(newState);
   };
 
-  const completeQuest = (questId) => {
-    const newState = { ...state };
-    const quest = newState.quests.find(q => q.id === questId);
-    if (quest && !quest.done) {
-      quest.done = true;
-      newState.xp += quest.XP;
-      // Level up logic (every 500 XP)
-      const newLevel = Math.floor(newState.xp / 500) + 1;
-      if (newLevel > newState.level) {
-        newState.level = newLevel;
+  const recordZenTime = (minutes) => {
+    setState(prev => {
+      const newZenTime = (prev.zenTime || 0) + minutes;
+      let achievements = prev.achievements;
+      
+      // TRIGGER: Zen Master Achievement (60 mins)
+      if (newZenTime >= 60) {
+        const ach = prev.achievements.find(a => a.id === 'a2');
+        if (ach && !ach.earned) {
+           achievements = prev.achievements.map(a => 
+             a.id === 'a2' ? { ...a, earned: true } : a
+           );
+        }
       }
-      syncState(newState);
-    }
+      
+      const newState = { ...prev, zenTime: newZenTime, achievements };
+      
+      if (saveTimer.current) clearTimeout(saveTimer.current);
+      saveTimer.current = setTimeout(async () => {
+        await AsyncStorage.setItem(STATE_KEY, JSON.stringify(newState));
+      }, 500);
+      
+      return newState;
+    });
+  };
+
+  const completeQuest = (questId) => {
+    setState(prev => {
+      const quests = prev.quests.map(q => 
+        q.id === questId ? { ...q, done: true } : q
+      );
+      const quest = prev.quests.find(q => q.id === questId);
+      
+      if (quest && !quest.done) {
+        const newXp = prev.xp + quest.XP;
+        const newLevel = Math.floor(newXp / 500) + 1;
+        
+        const newState = { 
+          ...prev, 
+          quests, 
+          xp: newXp, 
+          level: newLevel > prev.level ? newLevel : prev.level 
+        };
+        
+        // Immediate sync trigger
+        if (saveTimer.current) clearTimeout(saveTimer.current);
+        saveTimer.current = setTimeout(async () => {
+          await AsyncStorage.setItem(STATE_KEY, JSON.stringify(newState));
+        }, 500);
+        
+        return newState;
+      }
+      return prev;
+    });
   };
 
   const earnAchievement = (id) => {
-    const newState = { ...state };
-    const achievement = newState.achievements.find(a => a.id === id);
-    if (achievement && !achievement.earned) {
-      achievement.earned = true;
-      syncState(newState);
-    }
+    setState(prev => {
+      const achievement = prev.achievements.find(a => a.id === id);
+      if (achievement && !achievement.earned) {
+        const achievements = prev.achievements.map(a => 
+          a.id === id ? { ...a, earned: true } : a
+        );
+        const newState = { ...prev, achievements };
+        
+        if (saveTimer.current) clearTimeout(saveTimer.current);
+        saveTimer.current = setTimeout(async () => {
+          await AsyncStorage.setItem(STATE_KEY, JSON.stringify(newState));
+        }, 500);
+        
+        return newState;
+      }
+      return prev;
+    });
   };
 
   return (
-    <AppContext.Provider value={{ state, loading, syncState, updateState, recordSession, completeQuest, earnAchievement }}>
+    <AppContext.Provider value={{ state, loading, syncState, updateState, recordSession, completeQuest, earnAchievement, recordZenTime }}>
       {children}
     </AppContext.Provider>
   );
