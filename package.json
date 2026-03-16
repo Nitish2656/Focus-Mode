@@ -15,6 +15,7 @@
     "@react-navigation/native": "^6.1.18",
     "expo": "~54.0.33",
     "expo-android-usagestats": "^1.2.0",
+    "expo-audio": "^55.0.8",
     "expo-av": "^16.0.8",
     "expo-linear-gradient": "~15.0.8",
     "expo-status-bar": "~3.0.9",

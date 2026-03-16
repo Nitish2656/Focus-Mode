@@ -16,6 +16,12 @@ export default function AnalyticsScreen() {
 
   const fetchExternalStats = async () => {
     try {
+        if (!UsageStats || !UsageStats.hasUsageStatsPermission) {
+            console.log('Analytics: Native UsageStats module unavailable.');
+            setLoadingExtras(false);
+            return;
+        }
+
         const hasPerm = await UsageStats.hasUsageStatsPermission();
         if (!hasPerm) {
             setLoadingExtras(false);

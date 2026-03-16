@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
 import { useAppContext, getWarriorRank } from '../AppContext';
 import { FOCUS_PRESETS, QUOTES } from '../data';
-import { Audio } from 'expo-av';
+import { createAudioPlayer } from 'expo-audio';
 import { checkForegroundApp, intervene, requestShieldPermissions } from '../FocusShieldLogic';
 
 const SUBJECTS = ['Python', 'SQL', 'Statistics', 'Machine Learning', 'Projects'];
@@ -32,6 +32,7 @@ export default function DisciplineScreen() {
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
       if (shieldRef.current) clearInterval(shieldRef.current);
+      if (soundRef.current) soundRef.current.pause();
     };
   }, []);
 
@@ -40,10 +41,10 @@ export default function DisciplineScreen() {
       if (timerRef.current) clearInterval(timerRef.current);
       if (shieldRef.current) clearInterval(shieldRef.current);
       setRunning(false);
-      if (soundRef.current) await soundRef.current.pauseAsync();
+      if (soundRef.current) soundRef.current.pause();
     } else {
       setRunning(true);
-      if (soundEnabled && mode === 'work') await playSound();
+      if (soundEnabled && mode === 'work') playSound();
       
       // Focus Shield Background Check
       if (state.focusShieldEnabled && mode === 'work') {
@@ -62,27 +63,27 @@ export default function DisciplineScreen() {
     }
   };
 
-  const playSound = async () => {
+  const playSound = () => {
     try {
       if (soundRef.current) {
-        await soundRef.current.unloadAsync();
+        soundRef.current.pause();
       }
-      const { sound } = await Audio.Sound.createAsync(
-        { uri: selectedSound.url },
-        { shouldPlay: true, isLooping: true }
-      );
-      soundRef.current = sound;
+      const player = createAudioPlayer(selectedSound.url);
+      player.loop = true;
+      player.shouldPlay = true;
+      player.play();
+      soundRef.current = player;
     } catch (e) {
-      console.warn('Sound error', e);
+      console.warn('Sound error:', e);
     }
   };
 
-  const toggleSoundPref = async () => {
+  const toggleSoundPref = () => {
      const next = !soundEnabled;
      setSoundEnabled(next);
      if (running && mode === 'work') {
-        if (next) await playSound();
-        else if (soundRef.current) await soundRef.current.stopAsync();
+        if (next) playSound();
+        else if (soundRef.current) soundRef.current.pause();
      }
   };
 

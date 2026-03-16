@@ -8,6 +8,11 @@ import { AppState, Linking } from 'react-native';
 
 export const checkForegroundApp = async (blocklist) => {
   try {
+    if (!UsageStats || !UsageStats.hasUsageStatsPermission) {
+      console.log('Focus Shield: Native module not available (Expo Go / Non-Android)');
+      return null;
+    }
+    
     const hasPermission = await UsageStats.hasUsageStatsPermission();
     if (!hasPermission) return null;
 
@@ -37,13 +42,14 @@ export const checkForegroundApp = async (blocklist) => {
 };
 
 export const intervene = () => {
-  // Bring Focus Tracker back to foreground
-  // In Expo, we can try opening our own app link or just alert
-  Linking.openURL('exp://'); // For development/testing
-  // In standalone, we'd use the package name: focus-tracker://
+  Linking.openURL('exp://'); 
 };
 
 export const requestShieldPermissions = async () => {
+    if (!UsageStats || !UsageStats.hasUsageStatsPermission) {
+        alert('Focus Shield requires the Standalone APK build to function.');
+        return false;
+    }
     const hasPerm = await UsageStats.hasUsageStatsPermission();
     if (!hasPerm) {
         UsageStats.requestUsageStatsPermission();
