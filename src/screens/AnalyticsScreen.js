@@ -1,12 +1,46 @@
-import React, { useMemo } from 'react';
-import { View, Text, ScrollView, StyleSheet, Dimensions } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, Dimensions, ActivityIndicator } from 'react-native';
 import { BarChart, LineChart, PieChart, ProgressChart } from 'react-native-chart-kit';
 import { useAppContext, getWarriorRank } from '../AppContext';
+import * as UsageStats from 'expo-android-usagestats';
 
 const screenWidth = Dimensions.get('window').width;
 
 export default function AnalyticsScreen() {
   const { state } = useAppContext();
+  const [externalStats, setExternalStats] = React.useState(null);
+  const [loadingExtras, setLoadingExtras] = React.useState(true);
+
+  React.useEffect(() => {
+    fetchExternalStats();
+  }, []);
+
+  const fetchExternalStats = async () => {
+    try {
+        const hasPerm = await UsageStats.hasUsageStatsPermission();
+        if (!hasPerm) {
+            setLoadingExtras(false);
+            return;
+        }
+
+        const now = Date.now();
+        const start = now - (7 * 24 * 60 * 60 * 1000);
+        const stats = await UsageStats.queryAndAggregateUsageStats(start, now);
+        
+        let distractionMins = 0;
+        if (stats) {
+            Object.values(stats).forEach(pkg => {
+                if (state.blocklist.includes(pkg.packageName)) {
+                    distractionMins += (pkg.totalTimeInForeground || 0) / 60000;
+                }
+            });
+        }
+        setExternalStats(Math.round(distractionMins));
+    } catch (e) {
+        console.warn('Usage Fetch Error:', e);
+    } finally {
+        setLoadingExtras(false);
+    }
+  };
 
   // 1. Weekly Study Hours (Bar Chart)
   const weeklyData = useMemo(() => {
@@ -171,6 +205,35 @@ export default function AnalyticsScreen() {
             />
         </View>
       )}
+
+      {/* External Usage Comparison */}
+      <View style={styles.chartCard}>
+        <Text style={styles.chartTitle}>📱 Screen Time: Focus vs Distraction</Text>
+        {loadingExtras ? (
+            <ActivityIndicator color="#7c3aed" style={{marginTop: 20}} />
+        ) : (
+            <View style={{marginTop: 20, alignItems: 'center'}}>
+                <ProgressChart
+                    data={{
+                        labels: ["Study", "Lost"],
+                        data: [
+                            0.7, // Placeholder or calculated ratio
+                            Math.min(1, (externalStats || 0) / 300) 
+                        ]
+                    }}
+                    width={screenWidth - 80}
+                    height={160}
+                    strokeWidth={16}
+                    radius={32}
+                    chartConfig={{...chartConfig, color: (opacity=1, i) => i === 0 ? `rgba(16, 185, 129, ${opacity})` : `rgba(239, 68, 68, ${opacity})` }}
+                    hideLegend={false}
+                />
+                <Text style={{color: '#94a3b8', fontSize: 12, marginTop: 10}}>
+                    Distraction Mins (7d): <Text style={{color: '#ef4444', fontWeight: 'bold'}}>{externalStats || 0}m</Text>
+                </Text>
+            </View>
+        )}
+      </View>
 
       {/* Warrior Rank */}
       <View style={[styles.chartCard, {backgroundColor: '#1a1a2e', borderColor: warrior.color}]}>

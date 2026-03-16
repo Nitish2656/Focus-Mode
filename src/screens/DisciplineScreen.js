@@ -3,6 +3,7 @@ import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-nati
 import { useAppContext, getWarriorRank } from '../AppContext';
 import { FOCUS_PRESETS, QUOTES } from '../data';
 import { Audio } from 'expo-av';
+import { checkForegroundApp, intervene, requestShieldPermissions } from '../FocusShieldLogic';
 
 const SUBJECTS = ['Python', 'SQL', 'Statistics', 'Machine Learning', 'Projects'];
 const SOUNDS = [
@@ -23,23 +24,32 @@ export default function DisciplineScreen() {
   const [selectedSound, setSelectedSound] = useState(SOUNDS[0]);
   
   const timerRef = useRef(null);
+  const shieldRef = useRef(null);
   const soundRef = useRef(null);
   const todayStr = new Date().toISOString().slice(0,10);
 
   useEffect(() => {
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
+      if (shieldRef.current) clearInterval(shieldRef.current);
     };
   }, []);
 
   const toggleTimer = async () => {
     if (running) {
       if (timerRef.current) clearInterval(timerRef.current);
+      if (shieldRef.current) clearInterval(shieldRef.current);
       setRunning(false);
       if (soundRef.current) await soundRef.current.pauseAsync();
     } else {
       setRunning(true);
       if (soundEnabled && mode === 'work') await playSound();
+      
+      // Focus Shield Background Check
+      if (state.focusShieldEnabled && mode === 'work') {
+        startShieldMonitoring();
+      }
+
       timerRef.current = setInterval(() => {
         setRemaining(prev => {
           if (prev <= 1) {
@@ -74,6 +84,30 @@ export default function DisciplineScreen() {
         if (next) await playSound();
         else if (soundRef.current) await soundRef.current.stopAsync();
      }
+  };
+
+  const startShieldMonitoring = () => {
+    if (shieldRef.current) clearInterval(shieldRef.current);
+    shieldRef.current = setInterval(async () => {
+        const detected = await checkForegroundApp(state.blocklist);
+        if (detected) {
+            console.log('Intervention triggered for:', detected);
+            intervene();
+            alert('🛡️ Focus Shield: Distribution app detected! Returning to study.');
+        }
+    }, 3000); // Check every 3 seconds
+  };
+
+  const toggleShield = async () => {
+    const next = !state.focusShieldEnabled;
+    if (next) {
+        const ok = await requestShieldPermissions();
+        if (!ok) {
+            alert('Usage Access Permission is required for Focus Shield to work.');
+            return;
+        }
+    }
+    updateState('focusShieldEnabled', next);
   };
 
   const handleTimerComplete = () => {
@@ -171,6 +205,9 @@ export default function DisciplineScreen() {
         <View style={{flexDirection: 'row', alignItems: 'center', marginTop: 24, gap: 12}}>
            <TouchableOpacity onPress={toggleSoundPref} style={[styles.soundToggle, soundEnabled && styles.soundActive]}>
               <Text style={{color: '#fff', fontSize: 12, fontWeight: '700'}}>{soundEnabled ? '🔊 Music On' : '🔇 Music Off'}</Text>
+           </TouchableOpacity>
+           <TouchableOpacity onPress={toggleShield} style={[styles.soundToggle, state.focusShieldEnabled && {backgroundColor: '#ef4444', borderColor: '#ef4444'}]}>
+              <Text style={{color: '#fff', fontSize: 12, fontWeight: '700'}}>{state.focusShieldEnabled ? '🛡️ Shield On' : '🛡️ Shield Off'}</Text>
            </TouchableOpacity>
            {soundEnabled && (
              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{gap: 8}}>
