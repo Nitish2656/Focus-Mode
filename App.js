@@ -17,6 +17,7 @@ import AnalyticsScreen from './src/screens/AnalyticsScreen';
 import StudyBuddyScreen from './src/screens/StudyBuddyScreen';
 import LimitsScreen from './src/screens/LimitsScreen';
 import { ActivityIndicator, View } from 'react-native';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 const Tab = createBottomTabNavigator();
 const Drawer = createDrawerNavigator();
@@ -144,10 +145,12 @@ const RootNavigator = () => {
 
 export default function App() {
   return (
-    <SafeAreaProvider>
-      <AppProvider>
-        <RootNavigator />
-      </AppProvider>
-    </SafeAreaProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <SafeAreaProvider>
+        <AppProvider>
+          <RootNavigator />
+        </AppProvider>
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
   );
 }
