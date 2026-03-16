@@ -71,7 +71,6 @@ const MainTabs = () => {
 const MainDrawer = () => {
   return (
     <Drawer.Navigator
-      useLegacyImplementation={false}
       screenOptions={{
         headerStyle: {
           backgroundColor: '#0a0a0f',
