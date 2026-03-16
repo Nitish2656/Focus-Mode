@@ -1,13 +1,26 @@
 import React from 'react';
 import { View, Text, ScrollView, StyleSheet } from 'react-native';
-import { useAppContext } from '../AppContext';
+import { useAppContext, getWarriorRank } from '../AppContext';
 import { LinearGradient } from 'expo-linear-gradient';
+import { Ionicons } from '@expo/vector-icons';
+import { TouchableOpacity } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 
 // We import data manually for curriculum calculations
 import { CURRICULUM, QUOTES } from '../data';
 
 export default function DashboardScreen() {
   const { user, state } = useAppContext();
+  const navigation = useNavigation();
+  
+  const calculateTotalScore = () => {
+    const done = Object.values(state.checked || {}).filter(Boolean).length;
+    const habitDays = state.habits?.reduce((s, h) => s + (h.streak || 0), 0) || 0;
+    const sessions = state.focusSessions || 0;
+    return Math.round(done * 3 + (state.streak || 0) * 5 + habitDays * 2 + sessions);
+  };
+  
+  const warrior = getWarriorRank(calculateTotalScore());
 
   const getStreamDay = () => {
     const start = new Date(state.startDate);
@@ -51,8 +64,13 @@ export default function DashboardScreen() {
       {/* Greeting */}
       <View style={styles.greetingRow}>
         <View style={{ flex: 1 }}>
-          <Text style={styles.greetingText}>{greeting}{user?.displayName ? `, ${user.displayName.split(' ')[0]}` : ''}! 🚀</Text>
-          <Text style={styles.subGreeting}>Today is Day <Text style={{fontWeight:'bold'}}>{streamDay}</Text> of your 112-day journey</Text>
+          <Text style={styles.greetingText}>{greeting}! 🚀</Text>
+          <View style={{flexDirection: 'row', alignItems: 'center', marginTop: 4}}>
+             <View style={[styles.rankBadge, {backgroundColor: warrior.color}]}>
+                <Text style={{color: '#fff', fontSize: 10, fontWeight: '900'}}>{warrior.rank}</Text>
+             </View>
+             <Text style={styles.subGreeting}>Day <Text style={{fontWeight:'bold'}}>{streamDay}</Text> of 112</Text>
+          </View>
         </View>
         <View style={styles.streakBadge}>
           <Text style={styles.streakText}>🔥 {state.streak||0}</Text>
@@ -83,6 +101,18 @@ export default function DashboardScreen() {
         <Text style={styles.cardTitle}>4-Month DS Journey</Text>
         <Text style={styles.cardSub}>112 days · 16 weeks · 12 projects</Text>
         <Text style={{color:'#f8fafc', fontSize:24, fontWeight:'900', marginTop:12}}>{totalPct}% Overall</Text>
+      </View>
+
+      {/* Quick Access */}
+      <View style={{flexDirection: 'row', gap: 12, marginTop: 16}}>
+         <TouchableOpacity onPress={() => navigation.navigate('Report')} style={[styles.qCard, {borderColor: 'rgba(124,58,237,0.3)'}]}>
+            <Ionicons name="analytics" size={20} color="#7c3aed" />
+            <Text style={styles.qText}>Reports</Text>
+         </TouchableOpacity>
+         <TouchableOpacity onPress={() => navigation.navigate('StudyBuddy')} style={[styles.qCard, {borderColor: 'rgba(16,185,129,0.3)'}]}>
+            <Ionicons name="school" size={20} color="#10b981" />
+            <Text style={styles.qText}>Buddy</Text>
+         </TouchableOpacity>
       </View>
 
       {/* Month Cards */}
@@ -137,5 +167,9 @@ const styles = StyleSheet.create({
   monthTitle: { fontSize: 13, color: '#f8fafc', fontWeight: '600', marginBottom: 12 },
   monthPct: { fontSize: 22, fontWeight: '900', marginBottom: 8 },
   mBarBg: { height: 4, backgroundColor: 'rgba(255,255,255,0.05)', borderRadius: 2 },
-  mBarFill: { height: '100%', borderRadius: 2 }
+  mBarFill: { height: '100%', borderRadius: 2 },
+
+  rankBadge: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, marginRight: 8 },
+  qCard: { flex:1, backgroundColor: '#14141e', padding: 16, borderRadius: 16, borderLeftWidth: 4, flexDirection: 'row', alignItems: 'center', gap: 10 },
+  qText: { color: '#fff', fontSize: 13, fontWeight: '700' }
 });

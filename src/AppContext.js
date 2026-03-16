@@ -19,6 +19,8 @@ const getDefaultState = () => ({
   quizPassed: {},
   quizSkipped: {},
   focusSessions: 0,
+  totalTime: 0,
+  history: {}, // { 'YYYY-MM-DD': { sessions: 0, time: 0, topics: {} } }
   moodLog: {},
   habits: [
     { id:'h1', label:'Study ≥1 hour',              icon:'📖', streak:0, lastDone:null },
@@ -28,6 +30,14 @@ const getDefaultState = () => ({
     { id:'h5', label:'Code review / GitHub push',   icon:'💻', streak:0, lastDone:null }
   ]
 });
+
+export const getWarriorRank = (score) => {
+  if (score < 10) return { rank: 'Novice', color: '#888' };
+  if (score < 50) return { rank: 'Apprentice Warrior', color: '#4CAF50' };
+  if (score < 150) return { rank: 'Disciplined Scholar', color: '#2196F3' };
+  if (score < 500) return { rank: 'Focus Grandmaster', color: '#FF9800' };
+  return { rank: 'Legend of Focus', color: '#F44336' };
+};
 
 export const AppProvider = ({ children }) => {
   const [state, setState] = useState(getDefaultState());
@@ -40,11 +50,9 @@ export const AppProvider = ({ children }) => {
 
   const initApp = async () => {
     try {
-      // 1. Load exclusively from AsyncStorage (100% Local Offline)
       const localRaw = await AsyncStorage.getItem(STATE_KEY);
       let loadedState = localRaw ? JSON.parse(localRaw) : getDefaultState();
       
-      // Update streak
       const today = new Date().toISOString().slice(0,10);
       if (loadedState.lastActive !== today) {
         const yesterday = new Date(); yesterday.setDate(yesterday.getDate()-1);
@@ -61,8 +69,6 @@ export const AppProvider = ({ children }) => {
       }
       
       setState(loadedState);
-      
-      // 3. Save back locally
       await AsyncStorage.setItem(STATE_KEY, JSON.stringify(loadedState));
     } catch (e) {
       console.warn('Init error', e);
@@ -75,7 +81,6 @@ export const AppProvider = ({ children }) => {
     setState(newState);
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = setTimeout(async () => {
-      // 100% Local Storage Sync
       await AsyncStorage.setItem(STATE_KEY, JSON.stringify(newState));
     }, 500);
   };
@@ -85,8 +90,33 @@ export const AppProvider = ({ children }) => {
     syncState(newState);
   };
 
+  const recordSession = (durationSeconds, topic) => {
+    const today = new Date().toISOString().slice(0,10);
+    const newState = { ...state };
+    
+    // Global stats
+    newState.focusSessions = (newState.focusSessions || 0) + 1;
+    newState.totalTime = (newState.totalTime || 0) + durationSeconds;
+    
+    // Detailed History
+    if (!newState.history) newState.history = {};
+    if (!newState.history[today]) {
+      newState.history[today] = { sessions: 0, time: 0, topics: {} };
+    }
+    
+    newState.history[today].sessions += 1;
+    newState.history[today].time += durationSeconds;
+    
+    if (topic) {
+      if (!newState.history[today].topics[topic]) newState.history[today].topics[topic] = 0;
+      newState.history[today].topics[topic] += durationSeconds;
+    }
+    
+    syncState(newState);
+  };
+
   return (
-    <AppContext.Provider value={{ state, loading, syncState, updateState }}>
+    <AppContext.Provider value={{ state, loading, syncState, updateState, recordSession }}>
       {children}
     </AppContext.Provider>
   );

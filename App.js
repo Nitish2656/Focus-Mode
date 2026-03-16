@@ -12,6 +12,8 @@ import CurriculumScreen from './src/screens/CurriculumScreen';
 import LogScreen from './src/screens/LogScreen';
 import DisciplineScreen from './src/screens/DisciplineScreen';
 import RemindersScreen from './src/screens/RemindersScreen';
+import AnalyticsScreen from './src/screens/AnalyticsScreen';
+import StudyBuddyScreen from './src/screens/StudyBuddyScreen';
 import { ActivityIndicator, View } from 'react-native';
 
 const Tab = createBottomTabNavigator();
@@ -45,6 +47,8 @@ const MainTabs = () => {
           else if (route.name === 'Learn') iconName = focused ? 'book' : 'book-outline';
           else if (route.name === 'Log') iconName = focused ? 'journal' : 'journal-outline';
           else if (route.name === 'Focus') iconName = focused ? 'flash' : 'flash-outline';
+          else if (route.name === 'Report') iconName = focused ? 'analytics' : 'analytics-outline';
+          else if (route.name === 'StudyBuddy') iconName = focused ? 'school' : 'school-outline';
           else if (route.name === 'Remind') iconName = focused ? 'notifications' : 'notifications-outline';
           return <Ionicons name={iconName} size={size} color={color} />;
         },
@@ -54,6 +58,8 @@ const MainTabs = () => {
       <Tab.Screen name="Learn" component={CurriculumScreen} />
       <Tab.Screen name="Log" component={LogScreen} />
       <Tab.Screen name="Focus" component={DisciplineScreen} />
+      <Tab.Screen name="Report" component={AnalyticsScreen} />
+      <Tab.Screen name="StudyBuddy" component={StudyBuddyScreen} options={{ title: 'Buddy' }} />
       <Tab.Screen name="Remind" component={RemindersScreen} />
     </Tab.Navigator>
   );

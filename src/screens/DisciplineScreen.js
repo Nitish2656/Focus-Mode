@@ -1,17 +1,29 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, TouchableOpacity, ScrollView, StyleSheet } from 'react-native';
-import { useAppContext } from '../AppContext';
+import { useAppContext, getWarriorRank } from '../AppContext';
 import { FOCUS_PRESETS, QUOTES } from '../data';
+import { Audio } from 'expo-av';
+
+const SUBJECTS = ['Python', 'SQL', 'Statistics', 'Machine Learning', 'Projects'];
+const SOUNDS = [
+  { id: 'lofi', label: '☕ Lofi', url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3' }, // Placeholder URLs for now
+  { id: 'rain', label: '🌧️ Rain', url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3' },
+  { id: 'cyber', label: '🌆 Cyber', url: 'https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3' },
+];
 
 export default function DisciplineScreen() {
-  const { state, updateState } = useAppContext();
+  const { state, updateState, recordSession } = useAppContext();
   
   const [remaining, setRemaining] = useState(25 * 60);
   const [preset, setPreset] = useState(0);
   const [running, setRunning] = useState(false);
   const [mode, setMode] = useState('work'); // 'work' | 'break'
+  const [topic, setTopic] = useState(SUBJECTS[0]);
+  const [soundEnabled, setSoundEnabled] = useState(false);
+  const [selectedSound, setSelectedSound] = useState(SOUNDS[0]);
   
   const timerRef = useRef(null);
+  const soundRef = useRef(null);
   const todayStr = new Date().toISOString().slice(0,10);
 
   useEffect(() => {
@@ -20,12 +32,14 @@ export default function DisciplineScreen() {
     };
   }, []);
 
-  const toggleTimer = () => {
+  const toggleTimer = async () => {
     if (running) {
-      clearInterval(timerRef.current);
+      if (timerRef.current) clearInterval(timerRef.current);
       setRunning(false);
+      if (soundRef.current) await soundRef.current.pauseAsync();
     } else {
       setRunning(true);
+      if (soundEnabled && mode === 'work') await playSound();
       timerRef.current = setInterval(() => {
         setRemaining(prev => {
           if (prev <= 1) {
@@ -38,19 +52,44 @@ export default function DisciplineScreen() {
     }
   };
 
+  const playSound = async () => {
+    try {
+      if (soundRef.current) {
+        await soundRef.current.unloadAsync();
+      }
+      const { sound } = await Audio.Sound.createAsync(
+        { uri: selectedSound.url },
+        { shouldPlay: true, isLooping: true }
+      );
+      soundRef.current = sound;
+    } catch (e) {
+      console.warn('Sound error', e);
+    }
+  };
+
+  const toggleSoundPref = async () => {
+     const next = !soundEnabled;
+     setSoundEnabled(next);
+     if (running && mode === 'work') {
+        if (next) await playSound();
+        else if (soundRef.current) await soundRef.current.stopAsync();
+     }
+  };
+
   const handleTimerComplete = () => {
-    clearInterval(timerRef.current);
+    if (timerRef.current) clearInterval(timerRef.current);
     setRunning(false);
     if (mode === 'work') {
-      updateState('focusSessions', (state.focusSessions||0) + 1);
       const p = FOCUS_PRESETS[preset];
+      recordSession(p.work * 60, topic);
       setMode('break');
       setRemaining(p.break * 60);
-      toggleTimer(); // auto start break
+      alert('Focus session complete! Take a break warrior.');
     } else {
       const p = FOCUS_PRESETS[preset];
       setMode('work');
       setRemaining(p.work * 60);
+      alert('Break over! Time to focus.');
     }
   };
 
@@ -128,6 +167,33 @@ export default function DisciplineScreen() {
           </TouchableOpacity>
         </View>
         <Text style={{color: '#64748b', fontSize: 12, marginTop: 16}}>🎯 {state.focusSessions||0} sessions completed</Text>
+        
+        <View style={{flexDirection: 'row', alignItems: 'center', marginTop: 24, gap: 12}}>
+           <TouchableOpacity onPress={toggleSoundPref} style={[styles.soundToggle, soundEnabled && styles.soundActive]}>
+              <Text style={{color: '#fff', fontSize: 12, fontWeight: '700'}}>{soundEnabled ? '🔊 Music On' : '🔇 Music Off'}</Text>
+           </TouchableOpacity>
+           {soundEnabled && (
+             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{gap: 8}}>
+                {SOUNDS.map(s => (
+                  <TouchableOpacity key={s.id} onPress={() => setSelectedSound(s)} style={[styles.soundBtn, selectedSound.id === s.id && styles.soundBtnActive]}>
+                    <Text style={{color: selectedSound.id === s.id ? '#fff' : '#94a3b8', fontSize: 11, fontWeight: '700'}}>{s.label}</Text>
+                  </TouchableOpacity>
+                ))}
+             </ScrollView>
+           )}
+        </View>
+      </View>
+
+      {/* Topic Selection */}
+      <View style={{marginBottom: 24}}>
+        <Text style={styles.sectionTitle}>📚 Current Study Subject</Text>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{gap: 8}}>
+          {SUBJECTS.map((s, i) => (
+            <TouchableOpacity key={i} style={[styles.topicBtn, topic === s && styles.topicActive]} onPress={() => setTopic(s)}>
+              <Text style={{color: topic === s ? '#fff' : '#94a3b8', fontSize: 12, fontWeight: '700'}}>{s}</Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
       </View>
 
       {/* Habits */}
@@ -154,7 +220,12 @@ export default function DisciplineScreen() {
       <View style={[styles.timerCard, {flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 20}]}>
         <View>
           <Text style={{color: '#f8fafc', fontSize: 16, fontWeight: '800'}}>⚡ Discipline Score</Text>
-          <Text style={{color: '#94a3b8', fontSize: 12, marginTop: 4}}>Done: {Object.values(state.checked).filter(Boolean).length}</Text>
+          <View style={{flexDirection: 'row', alignItems: 'center', marginTop: 4}}>
+             <View style={[styles.rankBadge, {backgroundColor: getWarriorRank(calcScore()).color}]}>
+               <Text style={{color: '#fff', fontSize: 10, fontWeight: '900'}}>{getWarriorRank(calcScore()).rank}</Text>
+             </View>
+          </View>
+          <Text style={{color: '#94a3b8', fontSize: 11, marginTop: 4}}>Done: {Object.values(state.checked).filter(Boolean).length} | Streak: {state.streak||0}</Text>
         </View>
         <Text style={{color: '#a855f7', fontSize: 32, fontWeight: '900'}}>{calcScore()}</Text>
       </View>
@@ -185,5 +256,14 @@ const styles = StyleSheet.create({
 
   sectionTitle: { fontSize: 12, fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 16 },
   habitItem: { flexDirection: 'row', alignItems: 'center', padding: 16, backgroundColor: '#14141e', borderRadius: 16, marginBottom: 12, borderWidth: 1, borderColor: 'rgba(255,255,255,0.03)' },
-  checkbox: { width: 24, height: 24, borderRadius: 12, borderWidth: 2, borderColor: '#64748b', alignItems: 'center', justifyContent: 'center' }
+  checkbox: { width: 24, height: 24, borderRadius: 12, borderWidth: 2, borderColor: '#64748b', alignItems: 'center', justifyContent: 'center' },
+  
+  topicBtn: { paddingHorizontal: 16, paddingVertical: 10, borderRadius: 12, backgroundColor: '#14141e', borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
+  topicActive: { borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,0.1)' },
+  rankBadge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 4, marginRight: 8 },
+
+  soundToggle: { paddingHorizontal: 16, paddingVertical: 10, borderRadius: 12, backgroundColor: '#14141e', borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)' },
+  soundActive: { backgroundColor: '#7c3aed', borderColor: '#7c3aed' },
+  soundBtn: { paddingHorizontal: 12, paddingVertical: 8, borderRadius: 10, backgroundColor: 'rgba(255,255,255,0.02)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)' },
+  soundBtnActive: { borderColor: '#7c3aed' }
 });
